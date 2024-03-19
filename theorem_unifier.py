@@ -68,7 +68,7 @@ def equivalent(t1, t2):
 def pre_filter(theorem):
     return False
 
-forbidden_strings = ["EGAM"]
+forbidden_strings = [("G","M"), ("V", "N"), ("V", "M")]
 
 def post_filter(theorem):
     # interleave quantifiers and types into a single string
@@ -79,10 +79,10 @@ def post_filter(theorem):
     ls.append('A')
     string = ''.join(ls)
     for forbidden in forbidden_strings:
-        if forbidden in string:
-            return True
+        if forbidden[0] in string:
+            if forbidden[1] in string[string.find(forbidden[0])+len(forbidden[0]):]:
+                return True
     return False
-
 
 if __name__ == "__main__":
     itr = list_all()
@@ -129,13 +129,17 @@ if __name__ == "__main__":
     print(f"Classification done: {count} theorems searched, {skipped} filtered. {len(classes)} equivalence classes found, {merged} merged")
     to_filter = []
     post_filtered = 0
+    filtered_classes = 0
     for eqclass, eqtheorems in classes.items():
-        for theorem in eqtheorems:
+        for index, theorem in enumerate(eqtheorems):
             if post_filter(theorem):
-                to_filter.append(eqclass)
-                break
-    for eqclass in to_filter:
-        post_filtered += len(classes[eqclass])
-        del classes[eqclass]
-    print(f"Filtering done: {len(to_filter)} classes filtered, removing {post_filtered} theorems")
-    print(f"Remaining classes: {len(classes)}, containing {count-post_filtered} theorems")
+                to_filter.append((eqclass, index))
+            else:
+                post_filtered += 1
+    for eqclass, theorem in reversed(to_filter): # need to do in reverse order to avoid indices changing after deletions
+        del classes[eqclass][theorem]
+        if len(classes[eqclass]) == 0:
+            filtered_classes += 1
+            del classes[eqclass]
+    print(f"Filtering done: {len(to_filter)} theorems filtered, removing {filtered_classes} classes")
+    print(f"Remaining classes: {len(classes)}, containing {post_filtered} theorems")
