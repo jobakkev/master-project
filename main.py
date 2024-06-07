@@ -1,68 +1,161 @@
 from z3 import *
+import timeit
 
 
-
-def add_items(s : Solver, n : Int, m : Int):
-    items = [Int("x" + str(i)) for i in range(1, n+1)]
-    # limit number of agents
-    for i in items:
-        s.add(i <= m)
-        s.add(i > 0)
+def add_items(m : Int):
+    """Creates Z3 Int variables for use as allocation items"""
+    items = [Int("a" + str(i)) for i in range(1, m+1)]
     return items
 
+def AllocationBounds(items, n : Int):
+    return And([And(items[i] > 0, items[i] <= n) for i in range(len(items))])
 
-def Value(s, items):
-    return Sum([If(item == s, 1, 0) for item in items])
+def add_valuations(s : Solver, n : Int, m : Int):
+    """"""
+    value_matrix = [[Int("v" + str(j) + "," + str(i)) for i in range(1, m+1)] for j in range(1,n+1)]
+    for agent in value_matrix:
+        for agent_item in agent:
+            s.add(agent_item >= 1)
+    return value_matrix
 
-def EnvyFree(m1, m2, items):
-    return Value(m1, items) >= Value(m2, items)
+## Adapted From: https://stackoverflow.com/questions/67043494/max-and-min-of-a-set-of-variables-in-z3py
+def SmallestValuedItemInBundleForAgent(items, valuations, bundle_id, agent_id):
+  # The first item does not necessarily belong to the bundle, in which case we use the total value of the bundle as a starting point
+  min = If(items[0] == bundle_id, valuations[agent_id-1][0], ValueOfBundleForAgent(bundle_id, agent_id, items, valuations))
+  for i in range(1, len(items)):
+    min = If(items[i] == bundle_id, If(valuations[agent_id-1][i] < min, valuations[agent_id-1][i], min), min)
+  return min
 
-"""
-def ValBoundCheck(num_agents, num_items):
-    valbound = RecFunction([SeqSort(SeqSort(Int)), IntSort(), IntSort()],BoolSort())
-    i = Int() # agent index
-    j = Int() # item index
-    v = Const(SeqSort(SeqSort(Int)))
-    RecAddDefinition(valbound, [v, i, j], 
-                     If(j == 0,
-                        If(Length(v[i]) == num_items,
-                           valbound(v, i, j+1),
-                           False
-                           ),
-                        
-                        0
-                        )
-                     )"""
+def GreatestValuedItemInBundleForAgent(items, valuations, bundle_id, agent_id):
+  maximum = 0
+  for i in range(len(items)):
+    maximum = If(items[i] == bundle_id, If(valuations[agent_id-1][i] > maximum, valuations[agent_id-1][i], maximum), maximum)
+  return maximum
+## End adapt
 
 
-def ValuationBoundsCheck(s: Solver, val,  num_agents, num_items):
-    i = Int() # agent index
-    j = Int() # item index
-    return ForAll(i, Implies(And(i >= 0, i < num_agents), And(Length(val[i]) == num_items, 
-                                                             ForAll(j, Implies(And(j>= 0, j < num_items), val[i][j] >= 0)))))
+def ValueOfBundleForAgent(bundle_id, agent_id, items, valuations):
+    return Sum([If(items[i] == bundle_id, valuations[agent_id-1][i], 0) for i in range(len(items))])
 
+def EnvyFree(envee_agent, envied_agent, items, valuations):
+    return ValueOfBundleForAgent(envee_agent, envee_agent, items, valuations) >= ValueOfBundleForAgent(envied_agent, envee_agent, items, valuations)
+
+def EnvyFreeUpToOneGood(envee_agent, envied_agent, items, valuations):
+    return ValueOfBundleForAgent(envee_agent, envee_agent, items, valuations) >= ValueOfBundleForAgent(envied_agent, envee_agent, items, valuations) - GreatestValuedItemInBundleForAgent(items, valuations, envied_agent, envee_agent)
+
+def EnvyFreeInstance(allocation, valuations, num_agents):
+    constraint = And([ 
+                        And([
+                            EnvyFree(i+1, j+1, allocation, valuations) for i in range(num_agents) if i != j
+                        ]) for j in range(num_agents)
+                    ])
+    return constraint
     
+def EnvyFreeUpToOneGoodInstance(allocation, valuations, num_agents):
+    constraint = And([ 
+                        And([
+                            EnvyFreeUpToOneGood(i+1, j+1, allocation, valuations) for i in range(num_agents) if i != j
+                        ]) for j in range(num_agents)
+                    ])
+    return constraint
 
-def path_graph_check():
+
+# def ValuationBoundsCheck(s: Solver, val,  num_agents, num_items):
+#     i = Int() # agent index
+#     j = Int() # item index
+#     return ForAll(i, Implies(And(i >= 0, i < num_agents), And(Length(val[i]) == num_items, 
+#                                                              ForAll(j, Implies(And(j>= 0, j < num_items), val[i][j] >= 0)))))
+
+def PathConstraint(items):
+    return And([items[i] != items[i+1] for i in range(len(items)-1)])
+
+def setup_solver(n, m, logresults=False):
+    """Sets up and runs a Z3 solver to check for a fair allocation instance with n agents and m items that does not admit EF1"""
     solver = Solver()
-    num_agents = Int
-    valuations = Const("v", SeqSort(SeqSort(Int)))
-    RecFunction()
-    pass
+    items = add_items(m)
+    valuations = add_valuations(solver, n, m)
+    solver.add(ForAll(items, Implies(AllocationBounds(items, n), Not(EnvyFreeUpToOneGoodInstance(items, valuations, n)))))
+    print(EnvyFreeUpToOneGoodInstance(items, valuations, n))
+    if logresults:
+        print("Running solver...")
+        result = solver.check()
+        print("Instance is " + ("Satisfiable" if result==sat else "Unsatisfiable" if result== unsat else "Unknown"))
+        if result == sat:
+            print("Producing model:")
+            m = solver.model()
+            print(m.eval(GreatestValuedItemInBundleForAgent([2,1], valuations, 1, 2)))
+            print(f"Value matrix:")
+            model_values = [[m[valuations[j][i]] for i in range(len(valuations[j]))] for j in range(len(valuations))]
+            for i, agent in enumerate(model_values):
+                print(f"Agent {i+1}:", end='')
+                for item in agent:
+                    print(f" {item}", end='')
+                print()
+            print("Item assignments:")
+            model_allocation = [m[items[i]] for i in range(len(items))]
+            print(model_allocation)
+    else:
+        solver.check()
+
+def setup_solver_path(n, m, logresults=False):
+    """Sets up and runs a Z3 solver to check for a fair allocation instance with n agents and m items that does not admit EF1.
+    This version further adds conflicting item constraints with a path graph, such that two items of neighbouring index cannot be
+    allocated to the same agent"""
+    solver = Solver()
+    items = add_items(m)
+    valuations = add_valuations(solver, n, m)
+    solver.add(ForAll(items, Implies(And(AllocationBounds(items, n), PathConstraint(items)), Not(EnvyFreeUpToOneGoodInstance(items, valuations, n)))))
+    if logresults:
+        print("Running solver...")
+        result = solver.check()
+        print("Instance is " + ("Satisfiable" if result==sat else "Unsatisfiable" if result== unsat else "Unknown"))
+        if result == sat:
+            print("Producing model:")
+            m = solver.model()
+            print(m.eval(GreatestValuedItemInBundleForAgent([2,1], valuations, 1, 2)))
+            print(f"Value matrix:")
+            model_values = [[m[valuations[j][i]] for i in range(len(valuations[j]))] for j in range(len(valuations))]
+            for i, agent in enumerate(model_values):
+                print(f"Agent {i+1}:", end='')
+                for item in agent:
+                    print(f" {item}", end='')
+                print()
+            print("Item assignments:")
+            model_allocation = [m[items[i]] for i in range(len(items))]
+            print(model_allocation)
+    else:
+        solver.check()
+
+def benchmark():
+    print(timeit.timeit(stmt="setup_solver(2,2)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(2,4)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(2,6)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(2,8)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(8,8)", number=1, globals=globals()))
 
 
 def main():
-    solver = Solver()
-    items = add_items(solver, 3, 3)
-    # constrain envy-freeness:
-    for agent1 in [1,2,3]:
-        for agent2 in [1,2,3]:
-            if agent1 != agent2:
-                solver.add(EnvyFree(agent1, agent2, items))
-    print(solver.check())
-    m = solver.model()
-    print(m)
+    # for i in range(2, 7):
+    #     for j in range(1, 7):
+    #         setup_solver(i, j, logresults=True)
+    setup_solver(2, 5, logresults=True)       
+    # benchmark()
     
 
 if __name__ == "__main__":
     main()
+    """ solver = Solver()
+    x = Int('x')
+    y = Int('y')
+    solver.add(ForAll([x], Or(x > y , x < 0)))
+    res = solver.check()
+    print(res)
+    print(solver.model())
+    solver2 = Solver()
+    z = Int('z')
+    b = Int('b')
+    solver.add(ForAll([z], Exists([b], b<z)))
+    res2 = solver2.check()
+    print(res2)
+    print(solver2.model())
+     """

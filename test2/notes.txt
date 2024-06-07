@@ -1,0 +1,8 @@
+Kan copilot hjelpe til å skrive bevis ?
+
+Ha en seksjon Automation in lean, les og bruk, evt andre (Coq Agda) bedre?
+    Bær i det minste nevne i future work
+Z3 in lean???
+advare mot bruk av imp og linarith, samtidig som de eer ntytige
+forklare kvifor me brukar Ints i staden for nat, kvifor er nats i lean ei felle
+funksjonell programmering i lean, kan me programmere ei algoritme i lean og så på ein eller annan måte gjere dettte om til eit bevis?
