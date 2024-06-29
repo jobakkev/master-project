@@ -4,10 +4,9 @@
 
 import itertools
 """
-theorems are expressed as three lists of five elements
+theorems are expressed as two lists of five elements
 the first list is an ordering of the five letters M,N,V,G,A
-the second list consists of five choices between E and A representing the kind of negation (existential or universal)
-the third list consists of five choices representing whether or not the quantifier is negated
+the second list consists of five choices between E and A representing the kind of quantification (existential or universal)
 
 we then iterate over the list of theorems. If a theorem is invalid, we discard it. If it is equivalent to a previously discovered theorem, we append it to that theorems class
 """
@@ -15,7 +14,7 @@ we then iterate over the list of theorems. If a theorem is invalid, we discard i
 
 def list_all():
     """Generate a list of all possible theorems"""
-    theorems = itertools.product(itertools.permutations(["M","G","N","V"]), itertools.product(["A","E"],repeat=5))
+    theorems = itertools.product(itertools.permutations(["M","G","N","V"]), itertools.product(["∀","∃"],repeat=5))
     return theorems
 
 def merge_equivalence(classes, i, j):
@@ -84,6 +83,13 @@ def post_filter(theorem):
                 return True
     return False
 
+def string_theorem(theorem):
+    return ''.join([theorem[1][i//2] if i%2 == 0 else theorem[0][i//2] for i in range(len(theorem[0])+len(theorem[1]))])
+
+def class_sort_key(cl):
+    return min([len(''.join(char[0] for char in itertools.groupby(theorem[1]))) for theorem in cl])
+    
+
 if __name__ == "__main__":
     itr = list_all()
     # generate equivalence classes:
@@ -143,3 +149,8 @@ if __name__ == "__main__":
             del classes[eqclass]
     print(f"Filtering done: {len(to_filter)} theorems filtered, removing {filtered_classes} classes")
     print(f"Remaining classes: {len(classes)}, containing {post_filtered} theorems")
+    # print classes
+    for i, cl in enumerate(sorted(list(classes.values()),key=class_sort_key)):
+        print(f"class {i}, {len(cl)} theorems: ")
+        for theorem in cl:
+            print(f"    {string_theorem(theorem)}")
