@@ -75,7 +75,7 @@ def setup_solver(n, m, logresults=False):
     items = add_items(m)
     valuations = add_valuations(solver, n, m)
     solver.add(ForAll(items, Implies(AllocationBounds(items, n), Not(EnvyFreeUpToOneGoodInstance(items, valuations, n)))))
-    print(EnvyFreeUpToOneGoodInstance(items, valuations, n))
+    #print(EnvyFreeUpToOneGoodInstance(items, valuations, n))
     if logresults:
         print("Running solver...")
         result = solver.check()
@@ -131,15 +131,26 @@ def benchmark():
     print(timeit.timeit(stmt="setup_solver(2,4)", number=1, globals=globals()))
     print(timeit.timeit(stmt="setup_solver(2,6)", number=1, globals=globals()))
     print(timeit.timeit(stmt="setup_solver(2,8)", number=1, globals=globals()))
-    print(timeit.timeit(stmt="setup_solver(8,8)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(2,10)", number=1, globals=globals()))
+
+def benchmark_path():
+    print(timeit.timeit(stmt="setup_solver_path(2,2)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(2,4)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(2,6)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(2,8)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(2,10)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(2,50)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(2,100)", number=1, globals=globals()))
 
 
 def main():
     # for i in range(2, 7):
     #     for j in range(1, 7):
     #         setup_solver(i, j, logresults=True)
-    setup_solver(2, 5, logresults=True)       
-    # benchmark()
+    # setup_solver_path(4, 5, logresults=True)       
+    # benchmark_path()
+    print(timeit.timeit(stmt="setup_solver_path(4,5)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(4,5)", number=1, globals=globals()))
     
 
 if __name__ == "__main__":

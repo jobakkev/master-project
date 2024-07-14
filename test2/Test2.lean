@@ -1,10 +1,13 @@
--- This module serves as the root of the `Test2` library.
--- Import modules here that should be built as part of the library.
-import «Test2».Basic
+import Master.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Nat.Interval
 import Mathlib.Algebra.BigOperators.Basic
 import Mathlib.Tactic.Linarith.Parsing
+
+-- This file contains the first attempt at the implementation
+-- which used Nat instead of Int for the valuation function
+-- leading to an unsolvable proof. It is included here for posterity
+
 
 def envies (a b : List Nat): Prop :=
   List.sum a < List.sum b
@@ -13,11 +16,6 @@ def envyuptoone (a b : List Nat): Prop :=
   (List.sum a < List.sum b) → ∃ x ∈ b,  x > List.sum b - List.sum a
 
 
--- theorem
--- assuming two lists of natural numbers a and b
--- and that a does not envy b
--- for any new number x
--- show that adding x to b does not break envy-freeness
 
 theorem t1 (a b : List Nat) (x : Nat) (h : envies b a) : envyuptoone a (x::b) := by
   -- expand definitions
