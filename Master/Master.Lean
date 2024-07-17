@@ -71,7 +71,7 @@ theorem ef_a_b_and_ef1_b_a_implies_mutual_ef1_insert_x
   apply And.intro
   -- ef1 v a (insert x b),  f1 v (insert x b) a
   exact ef_implies_ef1_insert_x ef_vab v_add
-  -- f1 v (insert x b) a
+  -- ef1 v (insert x b) a
   rw [ef1]
   -- v (insert x b) < v a → ∃ x_1 ∈ a, v {x_1} + v (insert x b) ≥ v a
   rw [ef1] at ef1_vba
