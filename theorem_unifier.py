@@ -89,6 +89,18 @@ def string_theorem(theorem):
 def class_sort_key(cl):
     return min([len(''.join(char[0] for char in itertools.groupby(theorem[1]))) for theorem in cl])
     
+def print_latex_table(theorem_classes : dict):
+    for i, cl in enumerate(sorted(list(theorem_classes.values()),key=class_sort_key)):
+        print(f"\midrule {i}", end="")
+        for theorem in sorted(cl, key=string_theorem):
+            tmp = string_theorem(theorem)
+            end = "ERROR"
+            if tmp[-1] == "∀":
+                end = "\ \\forall A \\neg "
+            elif tmp[-1] == "∃":
+                end = "\ \exists A \ \ "
+            tmp = tmp[:-1].replace("∃", "\ \exists ").replace("∀","\ \\forall ")
+            print(f" & ${tmp[2:]}{end} EF1$ \\\\")
 
 if __name__ == "__main__":
     itr = list_all()
@@ -150,7 +162,10 @@ if __name__ == "__main__":
     print(f"Filtering done: {len(to_filter)} theorems filtered, removing {filtered_classes} classes")
     print(f"Remaining classes: {len(classes)}, containing {post_filtered} theorems")
     # print classes
-    for i, cl in enumerate(sorted(list(classes.values()),key=class_sort_key)):
+    """for i, cl in enumerate(sorted(list(classes.values()),key=class_sort_key)):
         print(f"class {i}, {len(cl)} theorems: ")
         for theorem in cl:
-            print(f"    {string_theorem(theorem)}")
+            print(f"    {string_theorem(theorem)}")"""
+    print_latex_table(classes)
+
+

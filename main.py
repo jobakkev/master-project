@@ -74,6 +74,7 @@ def setup_solver(n, m, logresults=False):
     solver = Solver()
     items = add_items(m)
     valuations = add_valuations(solver, n, m)
+    #print(GreatestValuedItemInBundleForAgent(items, valuations, 1, 2))
     solver.add(ForAll(items, Implies(AllocationBounds(items, n), Not(EnvyFreeUpToOneGoodInstance(items, valuations, n)))))
     #print(EnvyFreeUpToOneGoodInstance(items, valuations, n))
     if logresults:
@@ -142,31 +143,30 @@ def benchmark_path():
     print(timeit.timeit(stmt="setup_solver_path(2,50)", number=1, globals=globals()))
     print(timeit.timeit(stmt="setup_solver_path(2,100)", number=1, globals=globals()))
 
+def benchmark_both():
+    print("Without paths:")
+    print(timeit.timeit(stmt="setup_solver(3,2)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(3,3)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(3,4)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver(3,5)", number=1, globals=globals()))
+    #print(timeit.timeit(stmt="setup_solver(3,6)", number=1, globals=globals()))
+    print("With paths:")
+    print(timeit.timeit(stmt="setup_solver_path(3,2)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(3,3)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(3,4)", number=1, globals=globals()))
+    print(timeit.timeit(stmt="setup_solver_path(3,5)", number=1, globals=globals()))
+    #print(timeit.timeit(stmt="setup_solver_path(3,6)", number=1, globals=globals()))
 
 def main():
     # for i in range(2, 7):
     #     for j in range(1, 7):
     #         setup_solver(i, j, logresults=True)
-    # setup_solver_path(4, 5, logresults=True)       
+    #setup_solver(2, 3, logresults=True)       
     # benchmark_path()
-    print(timeit.timeit(stmt="setup_solver_path(4,5)", number=1, globals=globals()))
-    print(timeit.timeit(stmt="setup_solver(4,5)", number=1, globals=globals()))
+    benchmark_both()
+    #print(timeit.timeit(stmt="setup_solver_path(4,5)", number=1, globals=globals()))
+    #print(timeit.timeit(stmt="setup_solver(4,5)", number=1, globals=globals()))
     
 
 if __name__ == "__main__":
     main()
-    """ solver = Solver()
-    x = Int('x')
-    y = Int('y')
-    solver.add(ForAll([x], Or(x > y , x < 0)))
-    res = solver.check()
-    print(res)
-    print(solver.model())
-    solver2 = Solver()
-    z = Int('z')
-    b = Int('b')
-    solver.add(ForAll([z], Exists([b], b<z)))
-    res2 = solver2.check()
-    print(res2)
-    print(solver2.model())
-     """
